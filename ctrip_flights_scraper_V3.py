@@ -25,7 +25,8 @@ minium_price = 1500
 
 excluded_airlines = ["春秋"]  # 可以添加其他需要排除的航空公司关键词
 
-email = ['sunhao1256@gmail.com','19952721153@163.com','9005837@qq.com']
+# email = ['sunhao1256@gmail.com','19952721153@163.com','9005837@qq.com']
+email = ['sunhao1256@gmail.com','9005837@qq.com']
 
 run_forever = True
 # run_forever = False

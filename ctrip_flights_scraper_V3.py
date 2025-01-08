@@ -1445,13 +1445,6 @@ class DataFetcher(object):
             print(f"错误堆栈: {traceback.format_exc()}")
             return None
 
-# 注册退出时关闭浏览器的回调函数
-def close_browser():
-    print("关闭浏览器...")
-    driver = Flight_DataFetcher.driver
-    driver.quit()
-
-atexit.register(close_browser)
 
 if __name__ == "__main__":
     driver = init_driver()
@@ -1461,6 +1454,14 @@ if __name__ == "__main__":
     flight_dates = generate_flight_dates(crawal_days, begin_date, end_date, start_interval, days_interval)
 
     Flight_DataFetcher = DataFetcher(driver)
+
+    # 注册退出时关闭浏览器的回调函数
+    def close_browser():
+        print("关闭浏览器...")
+        driver = Flight_DataFetcher.driver
+        driver.quit()
+
+    atexit.register(close_browser)
 
     while True:
         for city in citys:

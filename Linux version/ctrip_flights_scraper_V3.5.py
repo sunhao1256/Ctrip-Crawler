@@ -93,7 +93,7 @@ def kill_driver():
 def init_driver():
     options = webdriver.ChromeOptions()  # 创建一个配置对象
     options.add_argument("--incognito")  # 隐身模式（无痕模式）
-    options.add_argument("--headless")  # 启用无头模式
+    # options.add_argument("--headless")  # 启用无头模式
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-blink-features=AutomationControlled")
@@ -1085,8 +1085,7 @@ class DataFetcher(object):
 
             self.df["dateGetTime"] = dt.now().strftime("%Y-%m-%d")
 
-            print(f"获取到的舒适度数据: {self.comfort_data}")
-            
+
             # 数据的列名映射
             columns = {
                 "dateGetTime": "数据获取日期",
@@ -1136,6 +1135,8 @@ class DataFetcher(object):
             }
             
             if self.comfort_data:
+
+                print(f"获取到的舒适度数据: {self.comfort_data}")
                 comfort_df = pd.DataFrame.from_dict(self.comfort_data, orient='index')
                 comfort_df.reset_index(inplace=True)
                 comfort_df.rename(columns={'index': 'flight_no'}, inplace=True)

@@ -1,23 +1,24 @@
-import magic
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import atexit
-import time
-import io
-import os
 import gzip
-import time
+import io
 import json
-import pandas as pd
-from seleniumwire import webdriver
+import os
+import smtplib
+import threading
+import time
 from datetime import datetime as dt, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+import magic
+import pandas as pd
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-import threading
-
+from seleniumwire import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 
 low_price_identity=[]
 
@@ -137,7 +138,8 @@ def init_driver():
     # 如果需要指定Chrome驱动的路径，取消下面这行的注释并设置正确的路径
     # chromedriver_path = '/path/to/chromedriver'
     # 如果需要指定路径，可以加上executable_path参数
-    driver = webdriver.Chrome(options=options)
+    # driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     # driver = webdriver.Edge(options=options)
     driver.maximize_window()
 

@@ -1,17 +1,21 @@
-import gen_proxy_servers
-import magic
-import io
-import os
 import gzip
-import time
+import io
 import json
-import pandas as pd
-from seleniumwire import webdriver
+import os
+import time
 from datetime import datetime as dt, timedelta
+
+import magic
+import pandas as pd
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from seleniumwire import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+
+import gen_proxy_servers
 
 # 爬取的城市
 crawl_citys = ["上海", "香港", "东京"]
@@ -93,7 +97,7 @@ def kill_driver():
 def init_driver():
     options = webdriver.ChromeOptions()  # 创建一个配置对象
     options.add_argument("--incognito")  # 隐身模式（无痕模式）
-    # options.add_argument("--headless")  # 启用无头模式
+    options.add_argument("--headless")  # 启用无头模式
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-blink-features=AutomationControlled")
@@ -111,7 +115,8 @@ def init_driver():
         "excludeSwitches", ["enable-automation"]
     )  # 不显示正在受自动化软件控制的提示
     # options.page_load_strategy = 'eager'  # DOMContentLoaded事件触发即可
-    driver = webdriver.Chrome(options=options)
+    # driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     driver.set_page_load_timeout(max_wait_time*max_retry_time)  # 设置加载超时阈值
     # driver.maximize_window()
     driver.set_window_size(1280, 480)

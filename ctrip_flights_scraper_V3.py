@@ -29,7 +29,7 @@ low_price_identity = []
 
 advance_low_price_identity = []
 
-minium_price = 2500
+minium_price = 1500
 
 excluded_airlines = ["春秋"]  # 可以添加其他需要排除的航空公司关键词
 
@@ -108,7 +108,8 @@ def send_request(title, message, advance=False):
                 "device_key": "2MT5k4v4YEfv4CDZeFj6yP",
                 "title": title,
                 "sound": "minuet" if advance else "",
-                "level": "critical" if advance else "active",
+                # "level": "critical" if advance else "active",
+                "level": "active",
 
             })
         )
@@ -131,7 +132,7 @@ def send_email(subject, message, from_addr, password, smtp_server, smtp_port, ad
     except Exception as e:
         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} 写入tmp.txt文件失败: {str(e)}")
 
-    send_request("发现低价机票", message, advance)
+    send_request("发现超级低价机票" if advance else "发现低价机票", message, advance)
 
     # for to_addr in email:
     #     try:
@@ -1187,7 +1188,7 @@ class DataFetcher(object):
                 if economy_total_price <= minium_price and not is_excluded:
                     # 发送低价机票提醒邮件
                     msg = f"""
-                    发现低价机票!
+                    {"发现超级机票" if is_advance_excluded else "发现低价机票" }
                     航班: {flightNo} ({airlineName})
                     时间: {departureDateTime} - {arrivalDateTime}
                     经济舱总价: {economy_total_price}元

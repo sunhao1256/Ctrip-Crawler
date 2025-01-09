@@ -39,7 +39,7 @@ crawal_citys = ["上海", "大阪", "东京"]
 begin_date = '2025-02-01'
 
 # 爬取日期范围：结束日期。格式'2023-12-31'
-end_date = '2025-02-03'
+end_date = '2025-02-01'
 
 # 爬取T+N，即N天后
 start_interval = 1

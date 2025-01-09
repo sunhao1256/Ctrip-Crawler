@@ -6,12 +6,13 @@ import os
 import smtplib
 import threading
 import time
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, timedelta, datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import magic
 import pandas as pd
+import requests
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -20,14 +21,22 @@ from selenium.webdriver.support.ui import WebDriverWait
 from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 
-low_price_identity=[]
+start_time = datetime.now()
 
-minium_price = 1500
+cache_remain_hours = 4
+
+low_price_identity = []
+
+advance_low_price_identity = []
+
+minium_price = 2500
 
 excluded_airlines = ["春秋"]  # 可以添加其他需要排除的航空公司关键词
 
+advanced_excluded_airlines = ["春秋", "吉祥", "乐桃"]
+
 # email = ['sunhao1256@gmail.com','19952721153@163.com','9005837@qq.com']
-email = ['sunhao1256@gmail.com','9005837@qq.com']
+email = ['sunhao1256@gmail.com', '9005837@qq.com']
 
 run_forever = True
 # run_forever = False
@@ -84,7 +93,34 @@ accounts = ['18601487801', '']
 passwords = ['sunhao123', '']
 
 
-def send_email(subject, message, from_addr, password, smtp_server, smtp_port):
+def send_request(title, message, advance=False):
+    # push
+    # POST http://127.0.0.1:8080/push
+    # https://api.day.app/2MT5k4v4YEfv4CDZeFj6yP/推送标题/这里改成你自己的推送内容
+    try:
+        response = requests.post(
+            url="https://api.day.app/push",
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+            },
+            data=json.dumps({
+                "body": message,
+                "device_key": "2MT5k4v4YEfv4CDZeFj6yP",
+                "title": title,
+                "sound": "minuet" if advance else "",
+                "level": "critical" if advance else "active",
+
+            })
+        )
+        print('Response HTTP Status Code: {status_code}'.format(
+            status_code=response.status_code))
+        print('Response HTTP Response Body: {content}'.format(
+            content=response.content))
+    except requests.exceptions.RequestException:
+        print('HTTP Request failed')
+
+
+def send_email(subject, message, from_addr, password, smtp_server, smtp_port, advance=False):
     # 将邮件内容写入tmp.txt文件
     tmp_file = os.path.join(os.getcwd(), 'tmp.txt')
     try:
@@ -95,26 +131,28 @@ def send_email(subject, message, from_addr, password, smtp_server, smtp_port):
     except Exception as e:
         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} 写入tmp.txt文件失败: {str(e)}")
 
-    for to_addr in email:
-        try:
-            # 创建邮件对象
-            msg = MIMEMultipart()
-            msg['From'] = from_addr
-            msg['To'] = to_addr
-            msg['Subject'] = subject
+    send_request("发现低价机票", message, advance)
 
-            # 邮件正文
-            msg.attach(MIMEText(message, 'plain', 'utf-8'))
-
-            # 连接到SMTP服务器并发送邮件
-            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-                server.login(from_addr, password)
-                server.sendmail(from_addr, to_addr, msg.as_string())
-
-            print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} 邮件发送成功: {subject} to {to_addr}")
-
-        except Exception as e:
-            print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} 发送邮件失败: {str(e)}")
+    # for to_addr in email:
+    #     try:
+    #         # 创建邮件对象
+    #         msg = MIMEMultipart()
+    #         msg['From'] = from_addr
+    #         msg['To'] = to_addr
+    #         msg['Subject'] = subject
+    #
+    #         # 邮件正文
+    #         msg.attach(MIMEText(message, 'plain', 'utf-8'))
+    #
+    #         # 连接到SMTP服务器并发送邮件
+    #         with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+    #             server.login(from_addr, password)
+    #             server.sendmail(from_addr, to_addr, msg.as_string())
+    #
+    #         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} 邮件发送成功: {subject} to {to_addr}")
+    #
+    #     except Exception as e:
+    #         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} 发送邮件失败: {str(e)}")
 
 
 def init_driver():
@@ -281,7 +319,7 @@ class DataFetcher(object):
                 input_thread.start()
 
                 # 设置手动验证超时时间
-                timeout_seconds = crawal_interval * 100
+                timeout_seconds = crawal_interval * 20
 
                 input_thread.join(timeout=timeout_seconds)
 
@@ -1060,6 +1098,7 @@ class DataFetcher(object):
     def proc_priceList(self):
         self.prices = pd.DataFrame()
         low_price_flights = []  # 存放符合条件的航班信息
+        advance_low_price_flights = []  # 存放符合条件的航班信息
         for flightlist in self.flightItineraryList:
             flightNo = flightlist["itineraryId"].split("_")[0]
             priceList = flightlist["priceList"]
@@ -1143,6 +1182,8 @@ class DataFetcher(object):
                 economy_total_price = float(economy_total_price)
                 # 定义需要排除的航空公司关键词
                 is_excluded = any(keyword in flightNo or keyword in airlineName for keyword in excluded_airlines)
+                is_advance_excluded = any(
+                    keyword in flightNo or keyword in airlineName for keyword in advanced_excluded_airlines)
                 if economy_total_price <= minium_price and not is_excluded:
                     # 发送低价机票提醒邮件
                     msg = f"""
@@ -1158,6 +1199,11 @@ class DataFetcher(object):
                         low_price_flights.append(msg)
                         print(
                             f'{time.strftime("%Y-%m-%d_%H-%M-%S")} 发现低价机票: 航班{flightNo} ({airlineName}) {departureDateTime}-{arrivalDateTime} 经济舱总价 {economy_total_price}')
+                    if not is_advance_excluded and identity not in advance_low_price_identity:
+                        advance_low_price_identity.append(identity)
+                        advance_low_price_flights.append(msg)
+                        print(
+                            f'{time.strftime("%Y-%m-%d_%H-%M-%S")} 发现超级低价机票: 航班{flightNo} ({airlineName}) {departureDateTime}-{arrivalDateTime} 经济舱总价 {economy_total_price}')
             # self.prices=self.prices.append(price_info,ignore_index=True)
             self.prices = pd.concat(
                 [self.prices, pd.DataFrame(price_info, index=[0])], ignore_index=True
@@ -1178,6 +1224,21 @@ class DataFetcher(object):
                 print(f"{time.strftime('%Y-%m-%d_%H-%M-%S')} 发送汇总邮件失败: {str(e)}")
         else:
             print(f"{time.strftime('%Y-%m-%d_%H-%M-%S')} 未发现符合条件的低价机票")
+        if advance_low_price_flights:
+            try:
+                full_message = "\n\n".join(advance_low_price_flights)  # 拼接所有低价航班信息
+                send_email(
+                    subject="携程超级低价机票汇总提醒",
+                    message=full_message,
+                    from_addr="sunhao1256@163.com",
+                    password="QTEFLGOIDYDDXFQM",
+                    smtp_server="smtp.163.com",
+                    smtp_port=465,
+                    advance=True
+                )
+                print(f"{time.strftime('%Y-%m-%d_%H-%M-%S')} 汇总邮件发送成功!")
+            except Exception as e:
+                print(f"{time.strftime('%Y-%m-%d_%H-%M-%S')} 发送汇总邮件失败: {str(e)}")
 
     def mergedata(self):
         try:
@@ -1298,7 +1359,7 @@ class DataFetcher(object):
             filename = os.path.join(
                 files_dir, f"{dt.now().strftime("%Y-%m-%d_%H-%M-%S")}-{self.city[0]}-{self.city[1]}.csv")
 
-            self.df.to_csv(filename, encoding="UTF-8", index=False)
+            # self.df.to_csv(filename, encoding="UTF-8", index=False)
 
             print(f'\n{time.strftime("%Y-%m-%d_%H-%M-%S")} 数据爬取完成 {filename}\n')
 
@@ -1457,15 +1518,22 @@ if __name__ == "__main__":
 
     Flight_DataFetcher = DataFetcher(driver)
 
+
     # 注册退出时关闭浏览器的回调函数
     def close_browser():
         print("关闭浏览器...")
         driver = Flight_DataFetcher.driver
         driver.quit()
 
+
     atexit.register(close_browser)
 
     while True:
+        current_time = datetime.now()
+        # 判断是否超过 4 小时
+        if current_time - start_time >= timedelta(hours=cache_remain_hours):
+            low_price_identity.clear()
+            advance_low_price_identity.clear()
         for city in citys:
             Flight_DataFetcher.city = city
 
